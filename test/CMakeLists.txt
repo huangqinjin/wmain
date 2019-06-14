@@ -16,3 +16,6 @@ if(CMAKE_VERSION VERSION_LESS 3.13)
     # Manually specify the entry point for an .exe file.
     set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY LINK_FLAGS /ENTRY:wWinMainCRTStartup)
 endif()
+
+project(direct_io)
+add_executable(${PROJECT_NAME} ${PROJECT_NAME}.c)
