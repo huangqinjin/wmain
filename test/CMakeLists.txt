@@ -19,3 +19,6 @@ endif()
 
 project(direct_io)
 add_executable(${PROJECT_NAME} ${PROJECT_NAME}.c)
+
+project(wide_io)
+add_executable(${PROJECT_NAME} ${PROJECT_NAME}.cpp)
