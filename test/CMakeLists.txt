@@ -22,3 +22,7 @@ add_executable(${PROJECT_NAME} ${PROJECT_NAME}.c)
 
 project(wide_io)
 add_executable(${PROJECT_NAME} ${PROJECT_NAME}.cpp)
+
+project(utf8_io)
+add_executable(${PROJECT_NAME} ${PROJECT_NAME}.cpp)
+target_compile_options(${PROJECT_NAME} PRIVATE /W4 /wd4267 /utf-8 /std:c++17)
