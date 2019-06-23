@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.4)
 
 project(execution_charset)
 add_executable(${PROJECT_NAME} ${PROJECT_NAME}.c)

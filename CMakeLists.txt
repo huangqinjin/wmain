@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.4)
 project(wmain)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -12,6 +12,14 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.13)
     # export symbols referenced by other object files in the executable. The /WHOLEARCHIVE option makes the linker treat
     # all object files archived in a static library as if they were specified individually on the linker command line.
     target_link_options(${PROJECT_NAME} INTERFACE /WHOLEARCHIVE:$<TARGET_FILE:${PROJECT_NAME}>)
+endif()
+
+add_library(utf8 INTERFACE)
+if(CMAKE_VERSION VERSION_LESS 3.13)
+    target_sources(utf8 INTERFACE ${CMAKE_CURRENT_LIST_DIR}/wmain.manifest)
+else()
+    cmake_policy(SET CMP0076 NEW)
+    target_sources(utf8 INTERFACE wmain.manifest)
 endif()
 
 add_subdirectory(words)
