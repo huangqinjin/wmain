@@ -78,3 +78,59 @@ The builtin command [`type`](https://stackoverflow.com/questions/1259084/what-en
 file content using `WriteConsoleW`, otherwise using `WriteConsoleA/WriteFile`. So `type` displays correctly only for
 UTF-16LE BOM-ed files and those encoded in current `ConsoleOutputCP`. In PowerShell, `type` detects BOM for UTF-16 and
 UTF-8. To verify these, just run `type words\word-*.txt` in Cmd and PowerShell.
+
+## UCRT and UTF-8
+[UCRT](https://github.com/huangqinjin/ucrt) is the Windows' equivalent of the GNU C Library (glibc) that including C99
+and POSIX functionality and some extensions since Visual Studio 2015. Some POSIX functions have historically used the ACP
+for doing narrow->wide conversions. In order to support UTF-8, utf8 locale is implemented in
+[ucrt/locale/get_qualified_locale.cpp](https://github.com/huangqinjin/ucrt/compare/10.0.16299.0..10.0.17134.0#diff-1a6561e9e607dc41cc8136ae871d90c8)
+since UCRT 10.0.17134.0, and those functions have been modified so that they use `CP_UTF8` when current locale is utf8, 
+but the ACP otherwise in order to preserve backwards compatibility. These POSIX functions call 
+[ucrt/inc/corecrt_internal_win32_buffer.h#__acrt_get_utf8_acp_compatibility_codepage](https://github.com/huangqinjin/ucrt/compare/10.0.16299.0..10.0.17134.0#diff-2be54a7babb09ba8650f7df0598e23cb)
+to grab the codepage they should use for their conversions. An example is `fopen`: it convert narrow path to wide path
+using the grabbed codepage and then delegates to wide version of
+[ucrt/lowio/open.cpp#_sopen_nolock](https://github.com/huangqinjin/ucrt/compare/10.0.16299.0..10.0.17134.0#diff-8afecf8716b37578738aee2453038ad8). 
+Besides, the encoding of the narrow string representation of `std::filesystem::path` is also the grabbed codepage.
+
+The I/O flow path in the UCRT is
+  ```
+  C++ I/O -> C I/O -> POSIX I/O  -> Win32 File/Console I/O
+  filebuf -> FILE* -> read/write -> ReadFile/WriteFile/ReadConsoleW/WriteConsoleW
+
+  [w]cin/f[w]scanf/fget[w]s -> fget[w]c
+  [w]cout/f[w]printf/fput[w]s -> fput[w]c
+
+  fgetwc -> fgetc (*2, compose for _O_U16TEXT and _O_BINARY, mbtowc(DBCS) for _O_TEXT) -> fread -> read
+  fputwc -> (wctomb -> fputc, for _O_TEXT) -> fwrite -> write
+  ```
+
+The details of [`read`](https://github.com/huangqinjin/ucrt/blob/master/lowio/read.cpp) with different mode:
+- _O_BINARY or _O_TEXT:  ReadFile
+- _O_U8TEXT:  ReadFile -> UTF-8 -> UTF-16
+- File _O_U16TEXT: ReadFile
+- Console _O_U16TEXT:  ReadConsoleW
+
+The details of [`write`](https://github.com/huangqinjin/ucrt/blob/master/lowio/write.cpp) with different mode:
+- _O_BINARY:  WriteFile
+- File _O_U8TEXT:  UTF-16 -> UTF-8 -> WriteFile
+- File otherwise:  WriteFile
+- Console Unicode:  WriteConsoleW for each wchar, so only supports UCS-2
+- Console _O_TEXT with LC_CTYPE:
+    - C:  WriteFile
+    - utf8:  UTF-8 -> UTF-16 -> ConsoleInputCP -> WriteFile
+    - otherwise: DBCS (mbtowc) -> UTF-16 -> ConsoleInputCP -> WriteFile
+
+[Win32 Direct Console I/O](test/direct_io.c) and [C Wide I/O](test/wide_io.cpp) are always available for Unicode Console I/O.
+Since UCRT 10.0.17763.0, print functions treat the text data as UTF-8 encoded if locale is set to utf8. The changes are in 
+[ucrt/lowio/write.cpp#write_double_translated_ansi_nolock](https://github.com/huangqinjin/ucrt/compare/10.0.17134.0..10.0.17763.0#diff-86a935191f3f2686ef3dbb1f01bc181e). 
+The translation to `ConsoleInputCP` is strange, I think it should be `ConsoleOutputCP` and double translation is no need. 
+UCRT should be reworked to use `WriteConsoleW` after translated to UTF-16 such that no codepage is involved: 
+`ANSI(including UTF-8) -> UTF-16 -> WriteConsoleW`.
+
+`ReadConsoleA/ReadFile` get ANSI characters from `ConsoleInputCP`, but `SetConsoleCP(CP_UTF8)` doesn't work since
+[it only supports DBCS](https://github.com/microsoft/terminal/blob/master/src/host/dbcs.cpp#TranslateUnicodeToOem).
+There are two workarounds to support UTF-8 Console input:
+[delegating to wide input](https://alfps.wordpress.com/2011/12/08/unicode-part-2-utf-8-stream-mode) or doing
+`ConsoleInputCP -> UTF-16 -> UTF-8` conversion. The example [test\utf8_io.cpp](test/utf8_io.cpp) illustrates these two
+workarounds. UCRT should implement input as the reverse process of reworked output, i.e.
+`ReadConsoleW -> UTF-16 -> ANSI(including UTF-8)`.
