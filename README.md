@@ -134,3 +134,18 @@ There are two workarounds to support UTF-8 Console input:
 `ConsoleInputCP -> UTF-16 -> UTF-8` conversion. The example [test\utf8_io.cpp](test/utf8_io.cpp) illustrates these two
 workarounds. UCRT should implement input as the reverse process of reworked output, i.e.
 `ReadConsoleW -> UTF-16 -> ANSI(including UTF-8)`.
+
+## Encoding of argv and envp
+Windows is UTF-16 internal, so command-line arguments and the environment variables set are all UTF-16. Visual C++ compiler
+provides a Unicode version of C/C++ program entry point, named [wmain](https://docs.microsoft.com/en-us/cpp/cpp/argument-definitions).
+For the ANSI version of `main`, `argv`, an array of null-terminated strings representing command-line arguments entered 
+by the user of the program, and `envp`, an array of `key=value` formatted null-terminated strings representing a "frozen"
+copy of the variables set in the user's environment during the program startup, are all 
+[encoded in ACP](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfileapistooem#remarks)
+(converted from Unicode). So even a simple C program using `printf` to echo command-line arguments doesn't work, since
+[ACP != OEMCP (usually)](http://archives.miloush.net/michkap/archive/2005/02/08/369197.html), e.g. in English language
+Windows, ACP is [1252](https://en.wikipedia.org/wiki/Windows-1252) while OEMCP is 
+[437](https://en.wikipedia.org/wiki/Code_page_437), and code point 00F7 is "÷" for 1252 but "≈" for 437.
+
+To get UTF-8 encoded `argv`, simply link [wmain](wmain.c) into the final executable, take a look at the example
+[test\echo.c](test/echo.c).
