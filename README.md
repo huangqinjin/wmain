@@ -156,3 +156,37 @@ manifest. By using [UTF-8 process code page](https://docs.microsoft.com/en-us/wi
 the command-line arguments and ANSI variant of Win32 APIs are all UTF-8 encoded as [test\win32_gui.cpp](test/win32_gui.cpp)
 demonstrated. This model has the benefit of supporting existing code built with -A APIs without any code changes, but must
 handle legacy code page detection and conversion as usual if targeting/running on earlier Windows builds.
+
+## Conclusion for ALL-UTF8 on Windows
+- Use Visual Studio 2015 or later with Windows SDK version 10.0.17763.0 or later.
+- Add `/utf-8` to compile options to make all narrow string literals UTF-8.
+- Link to [wmain](wmain.c) to get UTF-8 encoded `argv`.
+- `setlocale(LC_CTYPE, ".utf8")` to support UTF-8 output and filenames (e.g. `printf`, `fopen` and `std::filesystem::path`).
+- `SetConsoleCP(CP_UTF8)` due to the bug of double translation for console output in UCRT. No need for C locale.
+- Skip above three items if using UTF-8 process code page.
+- `SetConsoleOutputCP(CP_UTF8)` to display characters correctly due to the encoding conversion from `ConsoleOutputCP` to Unicode in Windows Console.
+- Use wide console input. The typical structure of a Command-Line app is: input somewhere, output everywhere.
+  ```cpp
+  HANDLE hConsoleInput = GetStdHandle(STD_INPUT_HANDLE);
+  DWORD mode;
+  if (GetConsoleMode(hConsoleInput, &mode))
+  {
+      _setmode(_fileno(stdin), _O_U16TEXT);
+      wstring ws;
+      string s;    // a UTF-8 string
+      while (getline(std::wcin, ws))
+      {
+          s.resize(WideCharToMultiByte(CP_UTF8, 0, ws.data(), ws.size(), NULL, 0, NULL, NULL);
+          WideCharToMultiByte(CP_UTF8, 0, ws.data(), ws.size(), s.data(), s.size(), NULL, NULL);
+          // process(s);
+      }
+  }
+  else
+  {
+      string s;    // a UTF-8 string
+      while (getline(std::cin, s))
+      {
+          // process(s);
+      }
+  }
+  ```
