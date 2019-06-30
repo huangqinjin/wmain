@@ -149,3 +149,10 @@ Windows, ACP is [1252](https://en.wikipedia.org/wiki/Windows-1252) while OEMCP i
 
 To get UTF-8 encoded `argv`, simply link [wmain](wmain.c) into the final executable, take a look at the example
 [test\echo.c](test/echo.c).
+
+## Process code page
+As of Windows 10 May 2019 Update (Version 1903, Build Number 10.0.18362), one can set active code page per process in the
+manifest. By using [UTF-8 process code page](https://docs.microsoft.com/en-us/windows/uwp/design/globalizing/use-utf8-code-page),
+the command-line arguments and ANSI variant of Win32 APIs are all UTF-8 encoded as [test\win32_gui.cpp](test/win32_gui.cpp)
+demonstrated. This model has the benefit of supporting existing code built with -A APIs without any code changes, but must
+handle legacy code page detection and conversion as usual if targeting/running on earlier Windows builds.
