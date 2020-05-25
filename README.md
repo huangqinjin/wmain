@@ -117,15 +117,16 @@ The details of [`write`](https://github.com/huangqinjin/ucrt/blob/master/lowio/w
 - Console Unicode:  WriteConsoleW for each wchar, so only supports UCS-2
 - Console _O_TEXT with LC_CTYPE:
     - C:  WriteFile
-    - utf8:  UTF-8 -> UTF-16 -> ConsoleInputCP -> WriteFile
-    - otherwise: DBCS (mbtowc) -> UTF-16 -> ConsoleInputCP -> WriteFile
+    - utf8:  UTF-8 -> UTF-16 -> ~~ConsoleInputCP~~ ConsoleOutputCP -> WriteFile
+    - otherwise: DBCS (mbtowc) -> UTF-16 ->  ~~ConsoleInputCP~~ ConsoleOutputCP -> WriteFile
 
 [Win32 Direct Console I/O](test/direct_io.c) and [C Wide I/O](test/wide_io.cpp) are always available for Unicode Console I/O.
 Since UCRT 10.0.17763.0, print functions treat the text data as UTF-8 encoded if locale is set to utf8. The changes are in 
 [ucrt/lowio/write.cpp#write_double_translated_ansi_nolock](https://github.com/huangqinjin/ucrt/compare/10.0.17134.0..10.0.17763.0#diff-86a935191f3f2686ef3dbb1f01bc181e). 
-The translation to `ConsoleInputCP` is strange, I think it should be `ConsoleOutputCP` and double translation is no need. 
-UCRT should be reworked to use `WriteConsoleW` after translated to UTF-16 such that no codepage is involved: 
-`ANSI(including UTF-8) -> UTF-16 -> WriteConsoleW`.
+~~The translation to `ConsoleInputCP` is strange, I think it should be `ConsoleOutputCP` and~~ (This bug is
+[fixed in UCRT 10.0.19041.0](https://github.com/huangqinjin/ucrt/compare/10.0.18362.0..10.0.19041.0#diff-86a935191f3f2686ef3dbb1f01bc181e))
+double translation is no need. UCRT should be reworked to use `WriteConsoleW` after translated to UTF-16 such that no
+codepage is involved: `ANSI(including UTF-8) -> UTF-16 -> WriteConsoleW`.
 
 `ReadConsoleA/ReadFile` get ANSI characters from `ConsoleInputCP`, but `SetConsoleCP(CP_UTF8)` doesn't work since
 [it only supports DBCS](https://github.com/microsoft/terminal/blob/master/src/host/dbcs.cpp#TranslateUnicodeToOem).
@@ -162,7 +163,7 @@ handle legacy code page detection and conversion as usual if targeting/running o
 - Add `/utf-8` to compile options to make all narrow string literals UTF-8.
 - Link to [wmain](wmain.c) to get UTF-8 encoded `argv`.
 - `setlocale(LC_CTYPE, ".utf8")` to support UTF-8 output and filenames (e.g. `printf`, `fopen` and `std::filesystem::path`).
-- `SetConsoleCP(CP_UTF8)` due to the bug of double translation for console output in UCRT. No need for C locale.
+- `SetConsoleCP(CP_UTF8)` due to the bug of double translation for console output before UCRT 10.0.19041.0. No need for C locale.
 - Skip above three items if using UTF-8 process code page.
 - `SetConsoleOutputCP(CP_UTF8)` to display characters correctly due to the encoding conversion from `ConsoleOutputCP` to Unicode in Windows Console.
 - Use wide console input. The typical structure of a Command-Line app is: input somewhere, output everywhere.

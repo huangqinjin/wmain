@@ -141,7 +141,8 @@ void use_utf8_locale()
 {
     // SetConsoleOutputCP(CP_UTF8) to display characters correctly due to the encoding conversion from
     // ConsoleOutputCP to Unicode in Windows Console. SetConsoleCP(CP_UTF8) due to the bug of double
-    // translation for console output in UCRT. Use wide() for input since narrow input only supports DBCS.
+    // translation for console output before UCRT 10.0.19041.0. Use wide() for input since narrow input
+    // only supports DBCS.
     ConsoleCP cp;
     cout << "previous console input codepage: " << cp.ConsoleInputCP::oldcp << endl;
     cout << "previous console output codepage: " << cp.ConsoleOutputCP::oldcp << endl;
@@ -166,8 +167,8 @@ int main(int argc, char* argv[])
      *   - File Output: WriteFile
      *   - Console Output with LC_CTYPE:
      *      + C:  WriteFile
-     *      + utf8:  UTF-8 -> UTF-16 -> ConsoleInputCP -> WriteFile
-     *      + otherwise: DBCS (mbtowc) -> UTF-16 -> ConsoleInputCP -> WriteFile
+     *      + utf8:  UTF-8 -> UTF-16 -> ConsoleOutputCP -> WriteFile
+     *      + otherwise: DBCS (mbtowc) -> UTF-16 -> ConsoleOutputCP -> WriteFile
      * 
      * In UCRT 10.0.17134.0, setting locale to utf8 is supported, see
      * https://github.com/huangqinjin/ucrt/blob/10.0.17134.0/locale/get_qualified_locale.cpp.
@@ -183,7 +184,7 @@ int main(int argc, char* argv[])
      * is set to utf8, see
      * https://github.com/huangqinjin/ucrt/blob/10.0.17763.0/lowio/write.cpp#write_double_translated_ansi_nolock
      * 
-     * The translation to ConsoleInputCP is strange, I think it should be ConsoleOutputCP and double
+     * Before UCRT 10.0.19041.0, the double translation for console output uses ConsoleInputCP by mistake. Double
      * translation is no need. Should be reworked to use WriteConsoleW after translated to UTF-16 such
      * that no codepage is involved: ANSI -> UTF-16 -> WriteConsoleW.
      * 
