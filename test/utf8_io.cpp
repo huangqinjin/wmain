@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <iostream>
+#include <fstream>
 #include <iomanip>   // quoted
 #include <string>
 #include <clocale>
@@ -9,15 +10,29 @@
 #include <io.h>      // _get_osfhandle, _setmode
 #include <fcntl.h>   // _O_U16TEXT
 
-#define private public
-#include <fstream>
+// https://en.cppreference.com/w/cpp/language/class_template
+// Explicit instantiation definitions ignore member access specifiers.
+#define HIJACKER(Class, Member, Type)                     \
+inline Type Class::* Class ## _ ## Member();              \
+template<Type Class::* p> struct Class ## Member {        \
+friend Type Class::* Class ## _ ## Member() { return p; } \
+}; template struct Class ## Member<&Class::Member>;
 
-template<typename CharT, typename Traits>
-FILE* _get_cfile(const std::basic_filebuf<CharT, Traits>* buf)
+namespace std
 {
-    return buf ? buf->_Myfile : nullptr;
+    HIJACKER( filebuf, _Myfile, FILE*)
+    HIJACKER(wfilebuf, _Myfile, FILE*)
 }
-#undef private
+
+FILE* _get_cfile(const std::filebuf* buf)
+{
+    return buf ? buf->*std::filebuf__Myfile() : nullptr;
+}
+
+FILE* _get_cfile(const std::wfilebuf* buf)
+{
+    return buf ? buf->*std::wfilebuf__Myfile() : nullptr;
+}
 
 template<typename CharT, typename Traits>
 FILE* _get_cfile(const std::basic_streambuf<CharT, Traits>* buf)
