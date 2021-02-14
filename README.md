@@ -159,7 +159,7 @@ demonstrated. This model has the benefit of supporting existing code built with 
 handle legacy code page detection and conversion as usual if targeting/running on earlier Windows builds.
 
 ## Conclusion for ALL-UTF8 on Windows
-- Use Visual Studio 2015 or later with Windows SDK version 10.0.17763.0 or later.
+- Use Visual Studio 2015 or later with UCRT 10.0.17763.0 or later.
 - Add `/utf-8` to compile options to make all narrow string literals UTF-8.
 - Link to [wmain](wmain.c) to get UTF-8 encoded `argv`.
 - `setlocale(LC_CTYPE, ".utf8")` to support UTF-8 output and filenames (e.g. `printf`, `fopen` and `std::filesystem::path`).

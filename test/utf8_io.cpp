@@ -162,7 +162,10 @@ void use_utf8_locale()
     cout << "previous console input codepage: " << cp.ConsoleInputCP::oldcp << endl;
     cout << "previous console output codepage: " << cp.ConsoleOutputCP::oldcp << endl;
     cout << "set console codepage to UTF-8: " << CP_UTF8 << endl;
-    cout << "set locale to: " << setlocale(LC_CTYPE, ".utf8") << endl;
+    // Supports Windows XP. __acrt_get_qualified_locale() handles ".utf8" specially but 
+    // __acrt_get_qualified_locale_downlevel() for Windows before Vista not.
+    // https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/setlocale-wsetlocale
+    cout << "set locale to: " << setlocale(LC_CTYPE, ".65001") << endl;
 
     // The encoding of std::filesystem::path::string() here is CP_UTF8.
     cout << fs::current_path() << endl;
