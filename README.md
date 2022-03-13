@@ -136,6 +136,12 @@ There are two workarounds to support UTF-8 Console input:
 workarounds. UCRT should implement input as the reverse process of reworked output, i.e.
 `ReadConsoleW -> UTF-16 -> ANSI(including UTF-8)`.
 
+## UCRT and MinGW
+Since [May 2021](https://github.com/msys2/MINGW-packages/issues/6901),
+[UCRT64](https://github.com/msys2/MSYS2-packages/pull/2408) for gcc toolchain and 
+[CLANG64](https://github.com/msys2/MSYS2-packages/pull/2459) for clang toolchain are available as
+[MSYS2 environments](https://www.msys2.org/docs/environments). They link against UCRT instead of MSVCRT.
+
 ## Encoding of argv and envp
 Windows is UTF-16 internal, so command-line arguments and the environment variables set are all UTF-16. Visual C++ compiler
 provides a Unicode version of C/C++ program entry point, named [wmain](https://docs.microsoft.com/en-us/cpp/cpp/argument-definitions).
@@ -177,7 +183,7 @@ handle legacy code page detection and conversion as usual if targeting/running o
       string s;    // a UTF-8 string
       while (getline(std::wcin, ws))
       {
-          s.resize(WideCharToMultiByte(CP_UTF8, 0, ws.data(), ws.size(), NULL, 0, NULL, NULL);
+          s.resize(WideCharToMultiByte(CP_UTF8, 0, ws.data(), ws.size(), NULL, 0, NULL, NULL));
           WideCharToMultiByte(CP_UTF8, 0, ws.data(), ws.size(), s.data(), s.size(), NULL, NULL);
           // process(s);
       }
