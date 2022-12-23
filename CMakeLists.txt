@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 project(wmain)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
@@ -17,7 +16,11 @@ else() # Windows clang/clang-cl/cl
 endif()
 
 add_library(utf8 INTERFACE)
-target_sources(utf8 INTERFACE wmain.manifest)
+target_sources(utf8 INTERFACE $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:${CMAKE_CURRENT_LIST_DIR}/wmain.manifest>)
+target_compile_options(utf8 INTERFACE /utf-8)
 
-add_subdirectory(words)
-add_subdirectory(test)
+
+if(NOT DEFINED BUILD_TESTING OR BUILD_TESTING)
+    add_subdirectory(words)
+    add_subdirectory(test)
+endif()
