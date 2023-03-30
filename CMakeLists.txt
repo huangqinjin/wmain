@@ -17,7 +17,7 @@ endif()
 
 add_library(utf8 INTERFACE)
 target_sources(utf8 INTERFACE $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:${CMAKE_CURRENT_LIST_DIR}/wmain.manifest>)
-target_compile_options(utf8 INTERFACE /utf-8)
+target_compile_options(utf8 INTERFACE $<$<C_COMPILER_ID:MSVC>:/utf-8>)
 
 
 if(NOT DEFINED BUILD_TESTING OR BUILD_TESTING)
